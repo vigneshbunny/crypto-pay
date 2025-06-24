@@ -1,0 +1,100 @@
+You're using a solid encryption approach, but the error:
+
+500: {"message":"Failed to decrypt data"}
+
+means your app cannot decrypt the private key successfully when trying to send crypto. Here's how to fix this step-by-step:
+
+🧠 Root Cause: Likely one of these
+Encrypted string is malformed — e.g., missing iv:data format
+
+Wrong ENCRYPTION_KEY at decrypt time — must match encrypt time
+
+Encrypted data was stored or retrieved incorrectly (e.g., cut off)
+
+✅ Quick Checklist to Fix
+✅ 1. Check the ENCRYPTION_KEY
+The ENCRYPTION_KEY must be identical when encrypting and decrypting.
+
+In dev, make sure it’s set in your .env file:
+
+env
+Copy
+Edit
+ENCRYPTION_KEY=my-super-secret-key-32-bytes-long
+Avoid using process.env.DATABASE_URL as a fallback — that might change.
+
+Change this line:
+
+ts
+Copy
+Edit
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.DATABASE_URL || 'default-key-change-in-production';
+To just:
+
+ts
+Copy
+Edit
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
+✅ 2. Check Your Database Value
+Ensure the stored value of the encrypted private key looks like:
+
+makefile
+Copy
+Edit
+ed2b1a4bc3c94b7e1d9d546c014e2f57:34a2ccce569f6bd083bd92...
+It must contain one : between IV and encrypted value.
+
+✅ 3. Try Decrypting Manually in Code
+Test the decryption directly with the value you're storing:
+
+ts
+Copy
+Edit
+const decrypted = CryptoService.decrypt("iv:encrypteddata"); // put full value here
+console.log(decrypted);
+If this fails, then the issue is with:
+
+IV being invalid
+
+Encrypted part being corrupted
+
+Wrong key being used
+
+🛠 Want to Test It Safely?
+Here’s a full test example:
+
+ts
+Copy
+Edit
+const plainKey = 'YOUR_PRIVATE_KEY';
+const encrypted = CryptoService.encrypt(plainKey);
+console.log('Encrypted:', encrypted);
+
+const decrypted = CryptoService.decrypt(encrypted);
+console.log('Decrypted:', decrypted);
+If this works, then the encryption/decryption logic is fine, and your issue is with:
+
+.env mismatch
+
+Corrupted value in DB
+
+Incorrect retrieval at runtime
+
+✅ What to Do Next
+If you’re trying to send crypto, and this error shows up:
+
+json
+Copy
+Edit
+500: {"message":"Failed to decrypt data"}
+→ It means your backend can’t decrypt the private key for signing the transaction.
+
+🚀 Fix Summary:
+Make sure the same ENCRYPTION_KEY is used everywhere
+
+Check that the stored key format is correct
+
+Make sure .env is loaded (dotenv.config() in your main file)
+
+Log process.env.ENCRYPTION_KEY.length — it must be >= 32 bytes
+
