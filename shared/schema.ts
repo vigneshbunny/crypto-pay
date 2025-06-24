@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, decimal, varchar, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, varchar, boolean, index, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -55,6 +55,7 @@ export const balances = pgTable("balances", {
 }, (table) => [
   index("balances_wallet_id_idx").on(table.walletId),
   index("balances_token_type_idx").on(table.tokenType),
+  unique("balances_wallet_token_unique").on(table.walletId, table.tokenType),
 ]);
 
 // Zod schemas

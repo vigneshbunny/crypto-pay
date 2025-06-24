@@ -121,18 +121,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertBalance(insertBalance: InsertBalance): Promise<Balance> {
-    const [balance] = await db
-      .insert(balances)
-      .values(insertBalance)
-      .onConflictDoUpdate({
-        target: [balances.walletId, balances.tokenType],
-        set: {
+    // Check if balance exists first
+    const existingBalance = await this.getBalanceByWalletAndToken(
+      insertBalance.walletId!, 
+      insertBalance.tokenType!
+    );
+    
+    if (existingBalance) {
+      // Update existing balance
+      const [balance] = await db
+        .update(balances)
+        .set({
           balance: insertBalance.balance,
           lastUpdated: new Date(),
-        },
-      })
-      .returning();
-    return balance;
+        })
+        .where(and(
+          eq(balances.walletId, insertBalance.walletId!),
+          eq(balances.tokenType, insertBalance.tokenType!)
+        ))
+        .returning();
+      return balance;
+    } else {
+      // Insert new balance
+      const [balance] = await db
+        .insert(balances)
+        .values(insertBalance)
+        .returning();
+      return balance;
+    }
   }
 }
 
