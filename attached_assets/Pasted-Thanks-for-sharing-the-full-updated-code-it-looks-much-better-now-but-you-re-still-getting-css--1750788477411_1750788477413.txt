@@ -1,0 +1,118 @@
+Thanks for sharing the full updated code — it looks much better now, but you're still getting:
+
+css
+Copy
+Edit
+Transaction Failed
+
+500: {"message":"Failed to decrypt data"}
+Let’s pinpoint the issue and solve it immediately.
+
+✅ Your Code is Good — But Here's What's Likely Wrong
+🔎 1. Encrypted Data Format Is Corrupted
+Your decryption code expects this format:
+
+makefile
+Copy
+Edit
+ivHex:encryptedHex
+But if the encrypted string saved in DB or passed into decrypt() is:
+
+Empty
+
+Truncated
+
+Doesn't include the colon :
+
+Extra quotes or line breaks ("\n", ", etc.)
+
+➡️ split(':') returns less than 2 parts → 💥 Failed to decrypt data
+
+✅ Step-by-Step Fix Plan
+✅ 1. Check What’s Passed Into decrypt()
+Add a log just before decryption:
+
+ts
+Copy
+Edit
+console.log("Trying to decrypt:", encryptedData);
+You should see something like:
+
+makefile
+Copy
+Edit
+b30f2c0136ea6e4072e6bb88c3bcd4e2:52f5d9fa71e22b44f3e561...
+If you see:
+
+undefined
+
+null
+
+""
+
+or just one long string with no :
+➡️ The issue is in how you're storing or retrieving it from the database.
+
+✅ 2. Ensure You’re Using Same Key for Both Encrypt + Decrypt
+Add:
+
+ts
+Copy
+Edit
+console.log("ENCRYPTION_KEY used:", ENCRYPTION_KEY);
+console.log("KEY hash (32 bytes):", crypto.createHash('sha256').update(ENCRYPTION_KEY).digest('hex'));
+Do this in:
+
+The part where you encrypt
+
+The part where you decrypt
+
+☑️ They must match exactly.
+
+✅ 3. Manual Test
+Run this simple test in a fresh Node.js file:
+
+ts
+Copy
+Edit
+const { CryptoService } = require('./yourCryptoFile');
+
+const original = "PRIVATE_KEY_SAMPLE";
+const encrypted = CryptoService.encrypt(original);
+console.log("Encrypted:", encrypted);
+
+const decrypted = CryptoService.decrypt(encrypted);
+console.log("Decrypted:", decrypted);
+☑️ If this passes, your logic is fine and the issue is in your DB or data retrieval.
+
+🧠 Common Real-World Mistake:
+When saving encrypted data in a database or .env, sometimes:
+
+It's saved with " around it
+
+It gets encoded improperly (e.g., in JSON.stringify)
+
+It's line-wrapped or truncated due to DB column length (e.g., 255 chars)
+
+✅ Ensure your DB field for encrypted keys is at least 512 characters
+
+🧪 Bonus Debug Option:
+In decrypt(), add this for maximum debug visibility:
+
+ts
+Copy
+Edit
+console.error('--- Decryption Debug ---');
+console.error('Raw encryptedData:', encryptedData);
+console.error('Split parts:', parts);
+console.error('IV:', parts[0]);
+console.error('Encrypted Text:', parts[1]);
+console.error('------------------------');
+✅ Conclusion
+If you fix these 3 things:
+
+Ensure the encrypted string is in correct format
+
+Ensure same ENCRYPTION_KEY at both ends
+
+Ensure the DB stores the full value, no cutoffs
