@@ -13,13 +13,54 @@ export default function Scan() {
   const [manualAddress, setManualAddress] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [qrScanner, setQrScanner] = useState<QrScanner | null>(null);
+  const [hasCamera, setHasCamera] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
+  // Check camera availability on component mount
+  useEffect(() => {
+    const checkCamera = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setHasCamera(false);
+          return;
+        }
+        
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        setHasCamera(videoDevices.length > 0);
+      } catch (error) {
+        console.error('Error checking camera:', error);
+        setHasCamera(false);
+      }
+    };
+    
+    checkCamera();
+  }, []);
+
   const startCamera = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current) {
+      toast({
+        title: "Error",
+        description: "Video element not ready",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
+      // Check if browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Camera Not Supported",
+          description: "Your browser doesn't support camera access. Try using the image upload option.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsScanning(true);
+
       const scanner = new QrScanner(
         videoRef.current,
         (result) => {
@@ -30,22 +71,36 @@ export default function Scan() {
           preferredCamera: 'environment',
           highlightScanRegion: true,
           highlightCodeOutline: true,
+          maxScansPerSecond: 5,
         }
       );
 
       await scanner.start();
       setQrScanner(scanner);
-      setIsScanning(true);
 
       toast({
         title: "Camera started",
         description: "Point your camera at a QR code to scan",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting camera:', error);
+      setIsScanning(false);
+      
+      let errorMessage = "Unable to access camera.";
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = "Camera permission denied. Please allow camera access and try again.";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "No camera found on this device.";
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = "Camera not supported in this browser.";
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = "Camera is already in use by another application.";
+      }
+      
       toast({
         title: "Camera Error",
-        description: "Unable to access camera. Please check permissions.",
+        description: errorMessage + " Try using the image upload option instead.",
         variant: "destructive",
       });
     }
@@ -120,7 +175,7 @@ export default function Scan() {
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [qrScanner]);
 
   return (
     <div className="pb-20">
@@ -147,6 +202,7 @@ export default function Scan() {
                 autoPlay
                 playsInline
                 muted
+                style={{ transform: 'scaleX(-1)' }} // Mirror the video for better UX
               />
               <div className="absolute top-4 right-4">
                 <Button
@@ -163,23 +219,43 @@ export default function Scan() {
                   Point camera at QR code
                 </p>
               </div>
+              
+              {/* Scanning overlay */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="flex items-center justify-center h-full">
+                  <div className="w-48 h-48 border-4 border-white rounded-2xl relative">
+                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-blue-500 rounded-tl-xl"></div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-blue-500 rounded-tr-xl"></div>
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-blue-500 rounded-bl-xl"></div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-blue-500 rounded-br-xl"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <>
               <div className="w-48 h-48 bg-gray-200 rounded-xl mx-auto mb-4 flex items-center justify-center">
                 <Camera className="text-gray-400" size={64} />
               </div>
-              <p className="text-gray-600 mb-4">Position the QR code within the frame</p>
+              <p className="text-gray-600 mb-4">Scan a QR code to get the wallet address</p>
+              <p className="text-sm text-gray-500 mb-4">
+                Camera access required for live scanning
+              </p>
             </>
           )}
 
           {!isScanning && (
-            <div className="flex justify-center gap-3">
-              <Button variant="outline" onClick={startCamera}>
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
+              <Button 
+                variant="default" 
+                onClick={startCamera} 
+                className="flex-1 sm:flex-none"
+                disabled={hasCamera === false}
+              >
                 <Camera className="mr-2" size={16} />
-                Start Camera
+                {hasCamera === null ? "Checking Camera..." : hasCamera ? "Start Camera" : "Camera Not Available"}
               </Button>
-              <Button variant="outline" className="relative overflow-hidden">
+              <Button variant="outline" className="relative overflow-hidden flex-1 sm:flex-none">
                 <Upload className="mr-2" size={16} />
                 Upload Image
                 <input
@@ -189,6 +265,14 @@ export default function Scan() {
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
               </Button>
+            </div>
+          )}
+          
+          {hasCamera === false && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                Camera not available on this device. Use the "Upload Image" option to scan QR codes from your photo gallery.
+              </p>
             </div>
           )}
         </div>
