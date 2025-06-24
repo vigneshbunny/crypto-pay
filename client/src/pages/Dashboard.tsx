@@ -75,6 +75,16 @@ export default function Dashboard() {
               </span>
             </div>
             <p className="text-xs opacity-75 mt-1">Last 24 hours</p>
+            
+            {/* Display wallet address */}
+            {wallet?.address && (
+              <div className="mt-3 pt-3 border-t border-white border-opacity-20">
+                <p className="text-xs opacity-75 mb-1">Your TRX Address</p>
+                <p className="font-mono text-sm bg-white bg-opacity-20 px-3 py-2 rounded-lg">
+                  {wallet.address.slice(0, 8)}...{wallet.address.slice(-8)}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

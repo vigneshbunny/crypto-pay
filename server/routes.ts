@@ -46,7 +46,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('Registration error:', error);
-      res.status(500).json({ message: error.message || 'Registration failed' });
+      
+      // More specific error handling
+      if (error.message && error.message.includes('duplicate key')) {
+        return res.status(400).json({ message: 'User already exists' });
+      }
+      
+      // If it's a validation error from Zod
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Invalid input data' });
+      }
+      
+      // For other errors, provide a generic message but log the details
+      res.status(500).json({ message: 'Registration failed. Please try again.' });
     }
   });
 

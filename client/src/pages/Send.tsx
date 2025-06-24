@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +25,7 @@ const sendSchema = z.object({
 });
 
 export default function Send() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const { wallet, sendTransaction, sendTransactionLoading, sendTransactionError } = useWallet(user?.id || 0);
   const { toast } = useToast();
@@ -39,6 +39,15 @@ export default function Send() {
       amount: '',
     },
   });
+
+  // Handle pre-filled address from QR scanner
+  useEffect(() => {
+    const params = new URLSearchParams(location.split('?')[1] || '');
+    const address = params.get('address');
+    if (address) {
+      form.setValue('recipientAddress', address);
+    }
+  }, [location, form]);
 
   const selectedToken = form.watch('tokenType');
   const amount = form.watch('amount');

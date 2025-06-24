@@ -1,10 +1,13 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Camera } from "lucide-react";
+import { useState } from "react";
 
 export default function Scan() {
   const [, setLocation] = useLocation();
+  const [manualAddress, setManualAddress] = useState("");
 
   return (
     <div className="pb-20">
@@ -68,13 +71,23 @@ export default function Scan() {
         </div>
 
         {/* Manual Entry */}
-        <Button 
-          variant="secondary"
-          onClick={() => setLocation('/send')}
-          className="w-full py-3 rounded-xl font-semibold"
-        >
-          Enter Address Manually
-        </Button>
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-gray-700">Enter Address Manually</h3>
+          <Input
+            placeholder="Enter TRX address (e.g., TKzx...mg2Ax)"
+            value={manualAddress}
+            onChange={(e) => setManualAddress(e.target.value)}
+            className="font-mono text-sm"
+          />
+          <Button 
+            variant="default"
+            onClick={() => setLocation(`/send?address=${encodeURIComponent(manualAddress)}`)}
+            disabled={!manualAddress.trim()}
+            className="w-full py-3 rounded-xl font-semibold"
+          >
+            Continue to Send
+          </Button>
+        </div>
       </div>
     </div>
   );
