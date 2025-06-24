@@ -29,14 +29,24 @@ export class CryptoService {
       
       const parts = encryptedData.split(':');
       
-      if (parts.length !== 2) {
-        console.error('Invalid encrypted data format. Expected format: iv:encrypted');
+      let iv: Buffer;
+      let encrypted: string;
+      
+      if (parts.length === 3) {
+        // Handle old 3-part format: part1:part2:part3
+        // Reconstruct as iv:encrypted by combining parts
+        console.log('Handling old 3-part encrypted format');
+        iv = Buffer.from(parts[0], 'hex');
+        encrypted = parts[1] + parts[2]; // Combine the encrypted parts
+      } else if (parts.length === 2) {
+        // Handle new 2-part format: iv:encrypted
+        iv = Buffer.from(parts[0], 'hex');
+        encrypted = parts[1];
+      } else {
+        console.error('Invalid encrypted data format. Expected format: iv:encrypted or old 3-part format');
         console.error('Received parts:', parts.length, 'Data:', encryptedData);
         throw new Error('Invalid encrypted data format');
       }
-      
-      const iv = Buffer.from(parts[0], 'hex');
-      const encrypted = parts[1];
       
       const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
