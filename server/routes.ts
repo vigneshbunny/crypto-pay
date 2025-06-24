@@ -269,6 +269,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Record received transaction
+  app.post('/api/transactions/receive', async (req, res) => {
+    try {
+      const schema = z.object({
+        userId: z.number(),
+        txHash: z.string(),
+        fromAddress: z.string(),
+        amount: z.string(),
+        tokenType: z.enum(['TRX', 'USDT'])
+      });
+
+      const { userId, txHash, fromAddress, amount, tokenType } = schema.parse(req.body);
+      
+      const wallet = await storage.getWalletByUserId(userId);
+      if (!wallet) {
+        return res.status(404).json({ message: 'Wallet not found' });
+      }
+
+      // Check if transaction already exists
+      const existingTx = await storage.getTransactionByHash(txHash);
+      if (existingTx) {
+        return res.json({ message: 'Transaction already recorded' });
+      }
+
+      // Create receive transaction
+      const transaction = await storage.createTransaction({
+        userId,
+        walletId: wallet.id,
+        txHash,
+        fromAddress,
+        toAddress: wallet.address,
+        amount,
+        tokenType,
+        type: 'receive',
+        status: 'confirmed',
+        gasUsed: '0',
+        gasPrice: '0'
+      });
+
+      res.json({ transaction });
+    } catch (error: any) {
+      console.error('Record receive transaction error:', error);
+      res.status(500).json({ message: error.message || 'Failed to record transaction' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -8,26 +8,29 @@ export class CryptoService {
   static encrypt(text: string): string {
     const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher('aes256', key);
+    const cipher = crypto.createCipherGCM('aes-256-gcm', key, iv);
     
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag();
     
-    return iv.toString('hex') + ':' + encrypted;
+    return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
   }
 
   static decrypt(encryptedData: string): string {
     const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
     const parts = encryptedData.split(':');
     
-    if (parts.length !== 2) {
+    if (parts.length !== 3) {
       throw new Error('Invalid encrypted data format');
     }
     
     const iv = Buffer.from(parts[0], 'hex');
-    const encrypted = parts[1];
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
     
-    const decipher = crypto.createDecipher('aes256', key);
+    const decipher = crypto.createDecipherGCM('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
     
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
