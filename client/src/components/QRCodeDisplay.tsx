@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import QRCode from "qrcode";
+import * as QRCodeLib from "qrcode";
 
 interface QRCodeDisplayProps {
   value: string;
@@ -19,7 +19,7 @@ export default function QRCodeDisplay({
     const generateQRCode = async () => {
       try {
         setIsLoading(true);
-        await QRCode.toCanvas(canvasRef.current!, value, {
+        await QRCodeLib.toCanvas(canvasRef.current!, value, {
           width: size,
           margin: 2,
           color: {
