@@ -65,8 +65,8 @@ export default function Send() {
 
   const totalCost = selectedToken === 'TRX' ? amountNum + gasFee : amountNum;
   const totalUsd = selectedToken === 'TRX' 
-    ? (totalCost * 0.79).toFixed(2)
-    : (amountNum + (gasFee * 0.79)).toFixed(2);
+    ? (totalCost * 0.27).toFixed(2)
+    : (amountNum + (gasFee * 0.27)).toFixed(2);
 
   const onSubmit = (data: z.infer<typeof sendSchema>) => {
     setShowError(false);
@@ -219,7 +219,7 @@ export default function Send() {
                   </FormControl>
                   {amount && (
                     <p className="text-sm text-gray-500 mt-1">
-                      ≈ ${(amountNum * (selectedToken === 'TRX' ? 0.79 : 1)).toFixed(2)} USD
+                      ≈ ${(amountNum * (selectedToken === 'TRX' ? 0.27 : 1)).toFixed(2)} USD
                     </p>
                   )}
                   <FormMessage />

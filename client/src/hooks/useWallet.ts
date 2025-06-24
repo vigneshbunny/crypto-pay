@@ -27,7 +27,7 @@ export function useWallet(userId: number) {
 
   const sendTransactionMutation = useMutation({
     mutationFn: async (data: {
-      toAddress: string;
+      recipientAddress: string;
       amount: string;
       tokenType: 'TRX' | 'USDT';
     }) => {

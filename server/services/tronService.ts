@@ -69,12 +69,12 @@ export class TronService {
 
   // Estimate gas fee for TRX transfer
   async estimateTrxGasFee(): Promise<string> {
-    return '15'; // TRX transfers typically cost ~15 TRX in fees
+    return '1.1'; // TRX transfers typically cost ~1.1 TRX in fees
   }
 
   // Estimate gas fee for USDT transfer
   async estimateUsdtGasFee(): Promise<string> {
-    return '28'; // USDT transfers typically cost ~28 TRX in fees
+    return '13.8'; // USDT transfers typically cost ~13.8 TRX in fees
   }
 
   // Send TRX

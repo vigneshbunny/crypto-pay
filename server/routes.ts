@@ -167,12 +167,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const schema = z.object({
         userId: z.number(),
-        toAddress: z.string(),
+        recipientAddress: z.string(),
         amount: z.string(),
         tokenType: z.enum(['TRX', 'USDT'])
       });
 
-      const { userId, toAddress, amount, tokenType } = schema.parse(req.body);
+      const { userId, recipientAddress, amount, tokenType } = schema.parse(req.body);
+      const toAddress = recipientAddress;
       
       // Validate address
       if (!tronService.isValidAddress(toAddress)) {

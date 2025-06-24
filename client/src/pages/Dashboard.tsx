@@ -26,9 +26,10 @@ export default function Dashboard() {
 
   const trxBalance = parseFloat(wallet?.balances?.TRX || '0');
   const usdtBalance = parseFloat(wallet?.balances?.USDT || '0');
-  
+
   // Mock USD conversion rates (in production, fetch from price API)
-  const trxUsdRate = 0.79;
+  const trxUsdRate = 0.27; // Current TRX price in USD
+  const usdtUsdRate = 1.00; // USDT is pegged to USD
   const totalValueUsd = (trxBalance * trxUsdRate) + usdtBalance;
 
   const recentTransactions = transactions.slice(0, 3);
@@ -75,7 +76,7 @@ export default function Dashboard() {
               </span>
             </div>
             <p className="text-xs opacity-75 mt-1">Last 24 hours</p>
-            
+
             {/* Display wallet address */}
             {wallet?.address && (
               <div className="mt-3 pt-3 border-t border-white border-opacity-20">
@@ -104,7 +105,7 @@ export default function Dashboard() {
                 </div>
                 <span className="text-sm font-medium text-gray-700">Send</span>
               </Button>
-              
+
               <Button 
                 variant="ghost" 
                 onClick={() => setLocation('/receive')}
@@ -115,7 +116,7 @@ export default function Dashboard() {
                 </div>
                 <span className="text-sm font-medium text-gray-700">Receive</span>
               </Button>
-              
+
               <Button 
                 variant="ghost" 
                 onClick={() => setLocation('/scan')}
