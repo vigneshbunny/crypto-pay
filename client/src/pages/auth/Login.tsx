@@ -42,7 +42,7 @@ export default function Login() {
         title: "Welcome back!",
         description: "Successfully logged in to your wallet.",
       });
-      setLocation('/dashboard');
+      setLocation('/');
     },
     onError: (error: any) => {
       toast({

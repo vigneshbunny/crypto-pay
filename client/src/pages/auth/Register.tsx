@@ -45,7 +45,7 @@ export default function Register() {
         title: "Account created!",
         description: "Your wallet has been generated successfully.",
       });
-      setLocation('/wallet-generation');
+      setLocation('/');
     },
     onError: (error: any) => {
       toast({
