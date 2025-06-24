@@ -14,9 +14,14 @@ export class TronService {
   private tronWeb: any;
 
   constructor() {
+    const apiKey = process.env.TRON_API_KEY;
+    if (!apiKey) {
+      console.warn('TRON_API_KEY not set - some functionality may be limited');
+    }
+    
     this.tronWeb = new TronWeb({
       fullHost: TRON_FULL_NODE,
-      headers: { "TRON-PRO-API-KEY": process.env.TRON_API_KEY || '' },
+      headers: apiKey ? { "TRON-PRO-API-KEY": apiKey } : {},
       privateKey: process.env.TRON_PRIVATE_KEY || '01'.repeat(32)
     });
   }
@@ -36,8 +41,12 @@ export class TronService {
     try {
       const balance = await this.tronWeb.trx.getBalance(address);
       return this.tronWeb.fromSun(balance);
-    } catch (error) {
-      console.error('Error getting TRX balance:', error);
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        console.warn('TRON API key required for balance queries');
+      } else {
+        console.error('Error getting TRX balance:', error.message);
+      }
       return '0';
     }
   }
@@ -48,8 +57,12 @@ export class TronService {
       const contract = await this.tronWeb.contract().at(USDT_CONTRACT_ADDRESS);
       const balance = await contract.balanceOf(address).call();
       return this.tronWeb.toBigNumber(balance).dividedBy(1000000).toFixed(6);
-    } catch (error) {
-      console.error('Error getting USDT balance:', error);
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        console.warn('TRON API key required for USDT balance queries');
+      } else {
+        console.error('Error getting USDT balance:', error.message);
+      }
       return '0';
     }
   }

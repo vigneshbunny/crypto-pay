@@ -15,35 +15,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ message: 'User already exists' });
+        // Check if user has a wallet, if not, delete the incomplete user
+        const existingWallet = await storage.getWalletByUserId(existingUser.id);
+        if (!existingWallet) {
+          console.log('Cleaning up incomplete user registration:', existingUser.email);
+          // Delete the incomplete user and retry registration
+          try {
+            await storage.deleteUser(existingUser.id);
+          } catch (deleteError) {
+            console.error('Error cleaning up incomplete user:', deleteError);
+          }
+        } else {
+          return res.status(400).json({ message: 'User already exists' });
+        }
       }
 
       // Hash password
       const hashedPassword = CryptoService.hashPassword(password);
       
-      // Create user
-      const user = await storage.createUser({ email, password: hashedPassword });
+      let user;
+      let wallet;
       
-      // Generate wallet
-      const walletData = await tronService.generateWallet();
-      const encryptedPrivateKey = CryptoService.encrypt(walletData.privateKey);
-      
-      // Create wallet
-      const wallet = await storage.createWallet({
-        userId: user.id,
-        address: walletData.address,
-        privateKeyEncrypted: encryptedPrivateKey,
-        publicKey: walletData.publicKey
-      });
+      try {
+        // Create user
+        user = await storage.createUser({ email, password: hashedPassword });
+        
+        // Generate wallet
+        const walletData = await tronService.generateWallet();
+        const encryptedPrivateKey = CryptoService.encrypt(walletData.privateKey);
+        
+        // Create wallet
+        wallet = await storage.createWallet({
+          userId: user.id,
+          address: walletData.address,
+          privateKeyEncrypted: encryptedPrivateKey,
+          publicKey: walletData.publicKey
+        });
 
-      // Initialize balances
-      await storage.upsertBalance({ walletId: wallet.id, tokenType: 'TRX', balance: '0' });
-      await storage.upsertBalance({ walletId: wallet.id, tokenType: 'USDT', balance: '0' });
+        // Initialize balances
+        await storage.upsertBalance({ walletId: wallet.id, tokenType: 'TRX', balance: '0' });
+        await storage.upsertBalance({ walletId: wallet.id, tokenType: 'USDT', balance: '0' });
 
-      res.json({ 
-        user: { id: user.id, email: user.email },
-        wallet: { address: wallet.address }
-      });
+        res.json({ 
+          user: { id: user.id, email: user.email },
+          wallet: { address: wallet.address }
+        });
+      } catch (walletError) {
+        // If wallet creation fails, clean up the user
+        if (user) {
+          try {
+            await storage.deleteUser(user.id);
+          } catch (cleanupError) {
+            console.error('Error cleaning up user after wallet creation failure:', cleanupError);
+          }
+        }
+        throw walletError;
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       

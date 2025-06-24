@@ -51,6 +51,10 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async deleteUser(userId: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
   // Wallet operations
   async getWalletByUserId(userId: number): Promise<Wallet | undefined> {
     const [wallet] = await db.select().from(wallets).where(eq(wallets.userId, userId));
@@ -126,7 +130,7 @@ export class DatabaseStorage implements IStorage {
       insertBalance.walletId!, 
       insertBalance.tokenType!
     );
-    
+
     if (existingBalance) {
       // Update existing balance
       const [balance] = await db

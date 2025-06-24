@@ -1,13 +1,65 @@
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Camera } from "lucide-react";
-import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Camera, Upload, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Scan() {
   const [, setLocation] = useLocation();
   const [manualAddress, setManualAddress] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const { toast } = useToast();
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      setStream(mediaStream);
+      setIsScanning(true);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      toast({
+        title: "Camera Error",
+        description: "Unable to access camera. Please check permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setIsScanning(false);
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // For now, show a message that this feature is coming soon
+      toast({
+        title: "Feature Coming Soon",
+        description: "QR code image upload will be available in the next update.",
+      });
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   return (
     <div className="pb-20">
@@ -15,7 +67,7 @@ export default function Scan() {
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={() => setLocation('/dashboard')}
+          onClick={() => setLocation('/send')}
           className="mr-4 p-0"
         >
           <ArrowLeft className="h-6 w-6 text-gray-600" />
@@ -23,32 +75,59 @@ export default function Scan() {
         <h1 className="text-xl font-bold text-gray-900">Scan QR Code</h1>
       </div>
 
-      <div className="relative h-96 bg-black">
-        {/* Camera viewfinder mockup */}
-        <div className="w-full h-full bg-gray-900 flex items-center justify-center">
-          <div className="text-white text-center">
-            <p className="mb-2">Camera view would appear here</p>
-            <p className="text-sm opacity-75">QR scanner functionality requires camera permissions</p>
-          </div>
-        </div>
-        
-        {/* Scan overlay */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-64 h-64 border-4 border-white rounded-2xl relative">
-            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
-            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
-            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
-          </div>
-        </div>
-      </div>
-
       <div className="p-6">
-        <div className="text-center mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            Position QR code within the frame
-          </h2>
-          <p className="text-gray-600">Scan a TRX address or payment request</p>
+        {/* QR Scanner */}
+        <div className="bg-gray-100 rounded-2xl p-8 mb-6 text-center relative">
+          {isScanning ? (
+            <div className="relative">
+              <video
+                ref={videoRef}
+                className="w-full h-64 bg-black rounded-xl object-cover"
+                autoPlay
+                playsInline
+                muted
+              />
+              <div className="absolute top-4 right-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={stopCamera}
+                  className="rounded-full"
+                >
+                  <X size={16} />
+                </Button>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-48 h-48 border-2 border-white rounded-xl opacity-50"></div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="w-48 h-48 bg-gray-200 rounded-xl mx-auto mb-4 flex items-center justify-center">
+                <Camera className="text-gray-400" size={64} />
+              </div>
+              <p className="text-gray-600 mb-4">Position the QR code within the frame</p>
+            </>
+          )}
+
+          {!isScanning && (
+            <div className="flex justify-center gap-3">
+              <Button variant="outline" onClick={startCamera}>
+                <Camera className="mr-2" size={16} />
+                Start Camera
+              </Button>
+              <Button variant="outline" className="relative overflow-hidden">
+                <Upload className="mr-2" size={16} />
+                Upload Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Recent Addresses */}
