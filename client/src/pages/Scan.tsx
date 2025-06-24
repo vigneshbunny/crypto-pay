@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -5,29 +6,43 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Camera, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import QrScanner from "qr-scanner";
 
 export default function Scan() {
   const [, setLocation] = useLocation();
   const [manualAddress, setManualAddress] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [qrScanner, setQrScanner] = useState<QrScanner | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
   const startCamera = async () => {
+    if (!videoRef.current) return;
+
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      setStream(mediaStream);
+      const scanner = new QrScanner(
+        videoRef.current,
+        (result) => {
+          console.log('QR Code detected:', result.data);
+          handleQRCodeDetected(result.data);
+        },
+        {
+          preferredCamera: 'environment',
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+        }
+      );
+
+      await scanner.start();
+      setQrScanner(scanner);
       setIsScanning(true);
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        videoRef.current.play();
-      }
+      toast({
+        title: "Camera started",
+        description: "Point your camera at a QR code to scan",
+      });
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      console.error('Error starting camera:', error);
       toast({
         title: "Camera Error",
         description: "Unable to access camera. Please check permissions.",
@@ -37,21 +52,67 @@ export default function Scan() {
   };
 
   const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
+    if (qrScanner) {
+      qrScanner.stop();
+      qrScanner.destroy();
+      setQrScanner(null);
     }
     setIsScanning(false);
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQRCodeDetected = (data: string) => {
+    console.log('Processing QR data:', data);
+    
+    // Stop scanning
+    stopCamera();
+    
+    // Extract wallet address from QR code data
+    let address = data;
+    
+    // Handle different QR code formats
+    if (data.startsWith('tron:')) {
+      address = data.replace('tron:', '');
+    } else if (data.startsWith('TR') || data.startsWith('T')) {
+      address = data;
+    } else {
+      // Try to extract TRON address from the data
+      const tronMatch = data.match(/T[A-Za-z1-9]{33}/);
+      if (tronMatch) {
+        address = tronMatch[0];
+      }
+    }
+    
+    // Validate TRON address format
+    if (address.length === 34 && (address.startsWith('T'))) {
+      toast({
+        title: "QR Code Scanned!",
+        description: `Address: ${address.slice(0, 6)}...${address.slice(-6)}`,
+      });
+      
+      // Navigate to send page with the scanned address
+      setLocation(`/send?address=${encodeURIComponent(address)}`);
+    } else {
+      toast({
+        title: "Invalid QR Code",
+        description: "This doesn't appear to be a valid TRON wallet address.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // For now, show a message that this feature is coming soon
-      toast({
-        title: "Feature Coming Soon",
-        description: "QR code image upload will be available in the next update.",
-      });
+      try {
+        const result = await QrScanner.scanImage(file);
+        handleQRCodeDetected(result);
+      } catch (error) {
+        toast({
+          title: "No QR Code Found",
+          description: "Could not detect a QR code in the uploaded image.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -97,8 +158,10 @@ export default function Scan() {
                   <X size={16} />
                 </Button>
               </div>
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-48 h-48 border-2 border-white rounded-xl opacity-50"></div>
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                <p className="text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded">
+                  Point camera at QR code
+                </p>
               </div>
             </div>
           ) : (
