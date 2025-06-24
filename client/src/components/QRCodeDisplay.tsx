@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 
@@ -7,7 +6,10 @@ interface QRCodeDisplayProps {
   size?: number;
 }
 
-export default function QRCodeDisplay({ value, size = 256 }: QRCodeDisplayProps) {
+export default function QRCodeDisplay({
+  value,
+  size = 256,
+}: QRCodeDisplayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -21,14 +23,14 @@ export default function QRCodeDisplay({ value, size = 256 }: QRCodeDisplayProps)
           width: size,
           margin: 2,
           color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          }
+            dark: "#000000",
+            light: "#FFFFFF",
+          },
         });
-        setIsLoading(false);
       } catch (error) {
-        console.error('Error generating QR code:', error);
-        setIsLoading(false);
+        console.error("Error generating QR code:", error);
+      } finally {
+        setIsLoading(false); // Ensure loading state is updated
       }
     };
 
@@ -42,10 +44,7 @@ export default function QRCodeDisplay({ value, size = 256 }: QRCodeDisplayProps)
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <canvas
-          ref={canvasRef}
-          className="max-w-full max-h-full rounded-xl"
-        />
+        <canvas ref={canvasRef} className="max-w-full max-h-full rounded-xl" />
       )}
     </div>
   );
