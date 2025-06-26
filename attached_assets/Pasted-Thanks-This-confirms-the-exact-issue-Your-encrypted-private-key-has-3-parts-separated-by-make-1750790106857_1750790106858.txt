@@ -1,0 +1,98 @@
+Thanks! This confirms the exact issue:
+
+Your encrypted private key has 3 parts separated by ::
+
+makefile
+Copy
+Edit
+65a77410...:af40f4a3...:6bf4b3ea...
+This means it was either:
+
+Encrypted using an older method (maybe someone split the encrypted string unnecessarily)
+
+Or accidentally split during storage
+
+But your current decrypt logic only expects either:
+
+iv:encrypted (2 parts ✅)
+
+Or in your fix: if 3 parts → you combine 2nd + 3rd parts
+
+✅ Good News: You're Already Halfway There!
+In your CryptoService.decrypt() code, you already added:
+
+ts
+Copy
+Edit
+if (parts.length === 3) {
+  iv = Buffer.from(parts[0], "hex");
+  encrypted = parts[1] + parts[2]; // Combine the rest
+}
+✅ That should work if the data is split like:
+
+yaml
+Copy
+Edit
+iv : half1 : half2 → (iv) + (half1 + half2)
+BUT...
+
+⚠️ The Decryption Still Fails?
+That means either:
+
+The split data isn’t truly two encrypted halves
+
+The second/third parts aren’t clean hex (e.g., maybe they had a colon inside during encryption)
+
+You combined the wrong parts
+
+🔍 Fix: Print and Verify Before Decryption
+Update your decrypt() with this block just before decipher logic:
+
+ts
+Copy
+Edit
+console.log("Encrypted input:", encryptedData);
+console.log("Split parts:", parts);
+console.log("Using IV:", parts[0]);
+console.log("Encrypted Combined:", parts.slice(1).join(''));
+Then check:
+
+Do parts[1] + parts[2] form a valid hex string? (must be even-length, only hex characters)
+
+Does Buffer.from(parts[0], 'hex') give 16 bytes?
+
+✅ Safer Patch for Your Code (Handles any future format)
+ts
+Copy
+Edit
+const parts = encryptedData.split(':');
+
+if (parts.length >= 2) {
+  const iv = Buffer.from(parts[0], 'hex');
+  const encrypted = parts.slice(1).join(''); // Joins parts[1], [2], ... in case it's split further
+
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+} else {
+  throw new Error("Invalid encrypted data format");
+}
+🧪 Final Tip:
+You can check decryption manually for this string like this:
+
+ts
+Copy
+Edit
+const enc = "65a774105e6b3ac2d78a93adbd9cbc4f:af40f4a32fd292eb1826b43ad201c97b:6bf4b3eac7a63cf4fa72cd20c66f387095b14c43030821e2e9d1b2800c52132ce97d4d8fa9052d2213ba2c6315baac3188bdcb68d0a9d5d6f22208a0790570bf";
+
+const decrypted = CryptoService.decrypt(enc);
+console.log("Decrypted private key:", decrypted);
+If it fails, share the output of:
+
+parts.length
+
+parts[0] length
+
+parts[1] + parts[2] length
+
