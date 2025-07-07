@@ -38,11 +38,13 @@ export default function Login() {
     },
     onSuccess: (data) => {
       login(data);
+      // Set auth cookie for SSR/session detection (expires in 7 days)
+      document.cookie = `auth=${data.user.id}; path=/; max-age=${7*24*60*60}`;
       toast({
         title: "Welcome back!",
         description: "Successfully logged in to your wallet.",
       });
-      setLocation('/');
+      window.location.href = '/dashboard';
     },
     onError: (error: any) => {
       toast({

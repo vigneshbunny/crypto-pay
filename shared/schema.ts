@@ -1,62 +1,51 @@
-import { pgTable, text, serial, timestamp, decimal, varchar, boolean, index, unique } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const wallets = pgTable("wallets", {
-  id: serial("id").primaryKey(),
-  userId: serial("user_id").references(() => users.id).notNull(),
+export const wallets = sqliteTable("wallets", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").references(() => users.id).notNull(),
   address: text("address").notNull().unique(),
   privateKeyEncrypted: text("private_key_encrypted").notNull(),
   publicKey: text("public_key").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index("wallets_user_id_idx").on(table.userId),
-  index("wallets_address_idx").on(table.address),
-]);
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
 
-export const transactions = pgTable("transactions", {
-  id: serial("id").primaryKey(),
-  userId: serial("user_id").references(() => users.id).notNull(),
-  walletId: serial("wallet_id").references(() => wallets.id).notNull(),
+export const transactions = sqliteTable("transactions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  walletId: integer("wallet_id").references(() => wallets.id).notNull(),
   txHash: text("tx_hash").notNull().unique(),
   fromAddress: text("from_address").notNull(),
   toAddress: text("to_address").notNull(),
-  amount: decimal("amount", { precision: 20, scale: 6 }).notNull(),
-  tokenType: varchar("token_type", { length: 10 }).notNull(), // 'TRX' or 'USDT'
-  type: varchar("type", { length: 10 }).notNull(), // 'send' or 'receive'
-  status: varchar("status", { length: 20 }).notNull().default('pending'), // 'pending', 'confirmed', 'failed'
+  amount: real("amount").notNull(),
+  tokenType: text("token_type").notNull(), // 'TRX' or 'USDT'
+  type: text("type").notNull(), // 'send' or 'receive'
+  status: text("status").notNull().default('pending'), // 'pending', 'confirmed', 'failed'
   blockNumber: text("block_number"),
-  gasUsed: decimal("gas_used", { precision: 20, scale: 6 }),
-  gasPrice: decimal("gas_price", { precision: 20, scale: 6 }),
-  confirmations: decimal("confirmations").default('0'),
-  createdAt: timestamp("created_at").defaultNow(),
-  confirmedAt: timestamp("confirmed_at"),
-}, (table) => [
-  index("transactions_user_id_idx").on(table.userId),
-  index("transactions_wallet_id_idx").on(table.walletId),
-  index("transactions_tx_hash_idx").on(table.txHash),
-  index("transactions_status_idx").on(table.status),
-]);
+  gasUsed: real("gas_used"),
+  gasPrice: real("gas_price"),
+  confirmations: real("confirmations").default(0),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  confirmedAt: text("confirmed_at"),
+});
 
-export const balances = pgTable("balances", {
-  id: serial("id").primaryKey(),
-  walletId: serial("wallet_id").references(() => wallets.id).notNull(),
-  tokenType: varchar("token_type", { length: 10 }).notNull(),
-  balance: decimal("balance", { precision: 20, scale: 6 }).notNull().default('0'),
-  lastUpdated: timestamp("last_updated").defaultNow(),
-}, (table) => [
-  index("balances_wallet_id_idx").on(table.walletId),
-  index("balances_token_type_idx").on(table.tokenType),
-  unique("balances_wallet_token_unique").on(table.walletId, table.tokenType),
-]);
+export const balances = sqliteTable("balances", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  walletId: integer("wallet_id").references(() => wallets.id).notNull(),
+  tokenType: text("token_type").notNull(),
+  balance: real("balance").notNull().default(0),
+  lastUpdated: text("last_updated").default(sql`CURRENT_TIMESTAMP`),
+});
 
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users).pick({

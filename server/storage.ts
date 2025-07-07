@@ -137,7 +137,7 @@ export class DatabaseStorage implements IStorage {
         .update(balances)
         .set({
           balance: insertBalance.balance,
-          lastUpdated: new Date(),
+          lastUpdated: new Date().toISOString(),
         })
         .where(and(
           eq(balances.walletId, insertBalance.walletId!),

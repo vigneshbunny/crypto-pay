@@ -1,10 +1,23 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
+import cookieParser from 'cookie-parser';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+
+const httpServer = createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: { origin: '*' }
+});
+
+// Export io for use in routes
+export { io };
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -36,6 +49,12 @@ app.use((req, res, next) => {
   next();
 });
 
+io.on('connection', (socket) => {
+  socket.on('join', ({ room }) => {
+    if (room) socket.join(room);
+  });
+});
+
 (async () => {
   const server = await registerRoutes(app);
 
@@ -60,7 +79,7 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
+  httpServer.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,

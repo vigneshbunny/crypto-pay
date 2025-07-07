@@ -26,6 +26,8 @@ export function useAuth() {
   const logout = () => {
     setAuthData(null);
     localStorage.removeItem('auth');
+    // Remove auth cookie for SSR/session detection
+    document.cookie = 'auth=; path=/; max-age=0';
   };
 
   return {

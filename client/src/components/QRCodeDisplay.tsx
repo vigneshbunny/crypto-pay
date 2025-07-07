@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import * as QRCodeLib from "qrcode";
+import { QRCodeSkeleton } from "@/components/ui/skeleton";
 
 interface QRCodeDisplayProps {
   value: string;
@@ -11,41 +12,32 @@ export default function QRCodeDisplay({
   size = 256,
 }: QRCodeDisplayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!value || !canvasRef.current) return;
+    QRCodeLib.toCanvas(canvasRef.current, value, {
+      width: size,
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#ffffff",
+      },
+    }).catch(() => {
+      // Optionally handle error
+    });
+  }, [value, size, canvasRef.current]);
 
-    const generateQRCode = async () => {
-      try {
-        setIsLoading(true);
-        await QRCodeLib.toCanvas(canvasRef.current!, value, {
-          width: size,
-          margin: 2,
-          color: {
-            dark: "#000000",
-            light: "#FFFFFF",
-          },
-        });
-      } catch (error) {
-        console.error("Error generating QR code:", error);
-      } finally {
-        setIsLoading(false); // Ensure loading state is updated
-      }
-    };
-
-    generateQRCode();
-  }, [value, size]);
+  if (!value) {
+    return <QRCodeSkeleton size={size} />;
+  }
 
   return (
-    <div className="w-full h-full bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center">
-      {isLoading ? (
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : (
-        <canvas ref={canvasRef} className="max-w-full max-h-full rounded-xl" />
-      )}
-    </div>
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={size}
+      style={{ display: "block", margin: "0 auto", background: "#fff", borderRadius: 16 }}
+      aria-label="Wallet QR Code"
+    />
   );
 }

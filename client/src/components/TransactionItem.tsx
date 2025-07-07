@@ -1,12 +1,15 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUp, ArrowDown, Clock } from "lucide-react";
 import type { Transaction } from "@/types/wallet";
+import { ReactNode } from "react";
 
 interface TransactionItemProps {
   transaction: Transaction;
+  statusIcon?: ReactNode;
+  statusText?: string;
 }
 
-export default function TransactionItem({ transaction }: TransactionItemProps) {
+export default function TransactionItem({ transaction, statusIcon, statusText }: TransactionItemProps) {
   const isReceive = transaction.type === 'receive';
   const isPending = transaction.status === 'pending';
   
@@ -20,8 +23,15 @@ export default function TransactionItem({ transaction }: TransactionItemProps) {
   };
 
   const getStatusText = () => {
+    if (statusText) return statusText;
     if (transaction.status === 'pending' && transaction.confirmations > 0) {
-      return `Pending (${transaction.confirmations}/19 confirmations)`;
+      return `Processing (${transaction.confirmations}/19 confirmations)`;
+    }
+    if (transaction.status === 'confirmed') {
+      return 'Completed';
+    }
+    if (transaction.status === 'failed') {
+      return 'Failed';
     }
     return transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1);
   };
@@ -73,13 +83,13 @@ export default function TransactionItem({ transaction }: TransactionItemProps) {
                   ? 'bg-green-50' 
                   : 'bg-red-50'
             }`}>
-              {isPending ? (
+              {statusIcon || (isPending ? (
                 <Clock className="text-yellow-500" size={16} />
               ) : isReceive ? (
                 <ArrowDown className="text-green-500" size={16} />
               ) : (
                 <ArrowUp className="text-red-500" size={16} />
-              )}
+              ))}
             </div>
             <div>
               <p className="font-semibold text-gray-900">

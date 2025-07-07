@@ -13,7 +13,7 @@ export default function WalletGeneration() {
         if (newProgress >= 100) {
           clearInterval(interval);
           setTimeout(() => {
-            setLocation('/dashboard');
+            window.location.href = '/dashboard';
           }, 1000);
           return 100;
         }
@@ -22,7 +22,7 @@ export default function WalletGeneration() {
     }, 200);
 
     return () => clearInterval(interval);
-  }, [setLocation]);
+  }, []);
 
   return (
     <div className="p-6 pt-12">

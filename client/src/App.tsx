@@ -1,70 +1,119 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useWallet } from "@/hooks/useWallet";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/useAuth";
+import BottomNavigation from "@/components/BottomNavigation";
+import { ShimmerSkeleton } from "@/components/ui/skeleton";
+import { queryClient } from "@/lib/queryClient";
+
+// Pages
 import Login from "@/pages/auth/Login";
 import Register from "@/pages/auth/Register";
 import WalletGeneration from "@/pages/auth/WalletGeneration";
 import Dashboard from "@/pages/Dashboard";
 import Send from "@/pages/Send";
 import Receive from "@/pages/Receive";
-import History from "@/pages/History";
 import Scan from "@/pages/Scan";
+import History from "@/pages/History";
 import Settings from "@/pages/Settings";
-import BottomNavigation from "@/components/BottomNavigation";
 import NotFound from "@/pages/not-found";
 
-function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+function AppContent() {
+  const [location] = useLocation();
+  const { user, isLoading: authLoading } = useAuth();
+  const { walletLoading } = useWallet(user?.id || 0);
+  const { toast } = useToast();
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  if (isLoading) {
+  // Show loading during navigation
+  useEffect(() => {
+    setIsNavigating(true);
+    const timer = setTimeout(() => setIsNavigating(false), 300);
+    return () => clearTimeout(timer);
+  }, [location]);
+
+  // Show loading states
+  if (authLoading || isNavigating) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="p-6 space-y-6">
+          <div className="space-y-4">
+            <ShimmerSkeleton className="h-8 w-48" />
+            <ShimmerSkeleton className="h-4 w-32" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <ShimmerSkeleton className="h-32 rounded-xl" />
+            <ShimmerSkeleton className="h-32 rounded-xl" />
+          </div>
+          <div className="space-y-3">
+            <ShimmerSkeleton className="h-5 w-24" />
+            <div className="grid grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="text-center space-y-2">
+                  <ShimmerSkeleton className="h-12 w-12 rounded-full mx-auto" />
+                  <ShimmerSkeleton className="h-3 w-12 mx-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Auth pages
+  if (!user) {
+    switch (location) {
+      case "/login":
+        return <Login />;
+      case "/register":
+        return <Register />;
+      case "/wallet-generation":
+        return <WalletGeneration />;
+      default:
+        return <Login />;
+    }
+  }
+
+  // Main app pages
+  const renderPage = () => {
+    switch (location) {
+      case "/dashboard":
+        return <Dashboard />;
+      case "/send":
+        return <Send />;
+      case "/receive":
+        return <Receive />;
+      case "/scan":
+        return <Scan />;
+      case "/history":
+        return <History />;
+      case "/settings":
+        return <Settings />;
+      default:
+        return <NotFound />;
+    }
+  };
+
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen relative">
-      <Switch>
-        {!isAuthenticated ? (
-          <>
-            <Route path="/" component={Login} />
-            <Route path="/login" component={Login} />
-            <Route path="/register" component={Register} />
-            <Route path="/wallet-generation" component={WalletGeneration} />
-          </>
-        ) : (
-          <>
-            <Route path="/" component={Dashboard} />
-            <Route path="/dashboard" component={Dashboard} />
-            <Route path="/send" component={Send} />
-            <Route path="/receive" component={Receive} />
-            <Route path="/history" component={History} />
-            <Route path="/scan" component={Scan} />
-            <Route path="/settings" component={Settings} />
-          </>
-        )}
-        <Route component={NotFound} />
-      </Switch>
-      
-      {isAuthenticated && <BottomNavigation />}
+    <div className="min-h-screen bg-gray-50">
+      {renderPage()}
+      <BottomNavigation />
     </div>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <AppContent />
         <Toaster />
-        <Router />
       </TooltipProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;
