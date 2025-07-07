@@ -1,27 +1,29 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+import { pgTable, serial, text, integer, real, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+// Users table
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: false }).defaultNow(),
 });
 
-export const wallets = sqliteTable("wallets", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+// Wallets table
+export const wallets = pgTable("wallets", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   address: text("address").notNull().unique(),
   privateKeyEncrypted: text("private_key_encrypted").notNull(),
   publicKey: text("public_key").notNull(),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
 });
 
-export const transactions = sqliteTable("transactions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+// Transactions table
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   walletId: integer("wallet_id").references(() => wallets.id).notNull(),
   txHash: text("tx_hash").notNull().unique(),
@@ -34,17 +36,18 @@ export const transactions = sqliteTable("transactions", {
   blockNumber: text("block_number"),
   gasUsed: real("gas_used"),
   gasPrice: real("gas_price"),
-  confirmations: real("confirmations").default(0),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-  confirmedAt: text("confirmed_at"),
+  confirmations: integer("confirmations").default(0),
+  createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: false }),
 });
 
-export const balances = sqliteTable("balances", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+// Balances table
+export const balances = pgTable("balances", {
+  id: serial("id").primaryKey(),
   walletId: integer("wallet_id").references(() => wallets.id).notNull(),
   tokenType: text("token_type").notNull(),
   balance: real("balance").notNull().default(0),
-  lastUpdated: text("last_updated").default(sql`CURRENT_TIMESTAMP`),
+  lastUpdated: timestamp("last_updated", { withTimezone: false }).defaultNow(),
 });
 
 // Zod schemas
