@@ -178,7 +178,7 @@ export default function Dashboard() {
       <div className="bg-gray-50 p-6 pt-12">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-semibold text-black">Good Morning</h1>
+            <h1 className="text-xl font-semibold text-black">Welcome</h1>
             <p className="text-black opacity-90">{user?.email?.split('@')[0] || 'User'}</p>
           </div>
           <div className="flex space-x-3">
