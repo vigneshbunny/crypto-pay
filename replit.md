@@ -105,5 +105,5 @@ Changelog:
 
 ## User Preferences
 ```
-Preferred communication style: Simple, everyday language.
+Preferred style: Simple.
 ```
