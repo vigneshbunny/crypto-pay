@@ -1,5 +1,6 @@
 ### crypto_pay
 --basic crypto wallet application
+
 -- helps user to send/receive/hold funds in our platform
 -- non_custodial or hybrid web3 wallet
 -- provides private_keys for users flexibilty
