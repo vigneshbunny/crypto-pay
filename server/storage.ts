@@ -5,7 +5,7 @@ import {
   type Transaction, type InsertTransaction,
   type Balance, type InsertBalance
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
@@ -137,7 +137,8 @@ export class DatabaseStorage implements IStorage {
         .update(balances)
         .set({
           balance: insertBalance.balance,
-          lastUpdated: new Date().toISOString(),
+          // Postgres (Neon) expects a Date for timestamp columns; SQLite stores text
+          lastUpdated: (pool ? (new Date() as any) : new Date().toISOString()) as any,
         })
         .where(and(
           eq(balances.walletId, insertBalance.walletId!),
